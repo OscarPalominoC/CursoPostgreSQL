@@ -1,0 +1,46 @@
+¿Qué es PostgreSQL?
+    Open Source
+    Objeto-Relacional
+    Usa SQL
+    Desde 1986
+    PostGIS
+    PL/PgSQL
+    Cumple ACID = 
+        Atomicity:Corresponde a que se puede separar las funciones que está desarrollando la base de datos en pequeñas tareas, y desarrollarlas como un todo. Si alguna tarea falla, se realiza un rollback, es decir, se deshacen los cambios hechos.
+        Consistency: Todo lo que se desarrollo entorno al objeto relacional en que se puede tener 2 tablas que poseen llaves primarias, llaves foráneas, y consistencia quiere decir que los datos tienen una congruencia entre sí.
+        Isolation: Puedes tener varias tareas ejecutandose al mismo tiempo en la base de datos. 
+        Durability: Puedes tener la seguridad que la información no se perderá en caso de un fallo catastrófico, ¿Por qué? PostgreSQL primero relaciona los cambios en una bitacora, y luego escribe los cambios en la base de datos.
+
+¿Por qué PostgreSQL?
+    Tipos de Datos
+    Integridad de Datos
+    Concurrencia. Rendimiento
+    Fiabilidad, recuperación ante desastres
+    Seguridad
+    Extensibilidad
+    Internacionalización, Búsqueda de texto.
+
+https://platzi.com/blog/que-es-el-teorema-cap-y-como-elegir-la-base-de-datos-para-tu-proyecto/
+https://www.postgresql.org/
+
+
+Instalación de postgres en ubuntu.
+    sudo apt-get install postgresql postgresql-contrib
+instalación de la interfaz gráfica.
+    sudo apt-get install pgadmin3
+
+Iniciar la base de datos
+    sudo -u postgres<usuario> psql
+Cambiar la contraseña del usuario postgres.
+    Dentro de la base de datos activa:
+    alter user postgres with password '<contraseña>';
+
+Comandos más frecuentes:
+    \l -> Lista todas las bases de datos instaladas en el servidor.
+    \c <nombre BD> -> Ingresa a la base de datos.
+    \dt -> Lista las relaciones en la base de datos.
+    \d <nombre columna> -> Muestra a detalle cómo se crea un dato
+    \h -> lista los comandos de postgres para ser usados como SQL.
+    \g -> Ejecuta la última función que se haya utilizado en postgres.
+    \timing -> Inicializa el contador de tiempo para que la consola muestre en pantalla cuánto tiempo demoró en ejecutar un comando.
+Postgres funciona con SQL estándar, eso quiere decir que todos los comandos deben terminar con ;
