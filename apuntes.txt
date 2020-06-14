@@ -205,3 +205,486 @@ Por último, se verifican:
 
 Como es una tabla particionada, si intento guardar un dato más, no me dejará, porque ya fue almacenada en memoria, así que lo ideal para este tipo de tablas, es automatizarla y que se llene con los datos disponibles en la DB.
 
+
+CREACIÓN DE ROLES
+¿Qué puede hacer un rol?
+    Crear y eliminar
+    Asignar atributos
+    Agrupar con otros roles
+    Roles predeterminados
+    
+
+--------------------------RESUMEN----------------------------------------
+/* Inner join: solo nos trae los datos que coinciden en ambas tablas. */
+select * from route r
+innerjoin train tr
+on tr.train_id = r.train_id;
+
+/* Este es un full outer join: trae todos los datos de ambas tablas. Coincidan o no. */
+select * 
+from route r
+fullouterjoin train tr
+on tr.train_id = r.train_id;
+
+
+/*Este full outer join ahora solo nos trae los datos que no coinciden de la tabla A  con la la tabla B, tambien nos trae los datos de la tabla B que no coiniden con la  tabla A. (es como el opuesto del inner join, porque en lugar de traernos los que coinciden en ambas tablas, nos trae solo los que no coinciden en ambas tablas.)*/
+select * 
+from route r
+fullouterjoin train tr
+on tr.train_id = r.train_id
+where r.train_id isnull
+or tr.train_id isnull;
+
+
+/* left join: nos trae todos los datos de la tabla A(izquierda) y solo los datos de la  tabla B que coincidan en la tabla A. */
+select * from route r
+leftjoin train tr
+on tr.train_id = r.train_id;
+
+/* left outer join: nos devuelve todos los datos de la tabla A que no coincide con la tabla B. */
+select * from route r
+leftjoin train tr
+on tr.train_id = r.train_id
+where tr.train_id isnull;
+
+/*right join: nos devuelve todos los datos de la tabla B, y solo los datos de la tabla A que coincidan con la tabla B*/
+select * from route r
+rightjoin train tr
+on tr.train_id = r.train_id;
+
+/* right outer join: nos trae todos los datos de la tabla B que no coinciden con la tabla A*/
+
+select * from route r
+rightjoin train tr
+on tr.train_id = r.train_id
+where r.train_id isnull;
+
+/*NOTA: Cuando usamos left join (Tabla A a la tabla B) estamos usando la tabla A, es decir traemos todos los datos de la tabla A y solo los datos de la tabla B que coinciden con la tabla A. si queremos usar un left outer join la llave primaria null que debemos especificar es la de la tabla B.
+WHERE b.pkey us null;
+lo mismo pasa cuando usamos un right outer join
+como usamos la tabla B y solo los que coinciden con la tabla A entonces la llave null
+que usamos es de la tabla A.
+WHERE a.pkey us null;								*/
+
+
+FUNCIONES ESPECIALES PRINCIPALES
+    ON CONFLICT DO: Ayuda a solucionar problemas cuando queremos insertar o modificar datos en una tabla que no podamos, y después hacemos la actualización correcta, es decir, si queremos insertar un dato sobre otro dato, ON CONFLICT DO permite caracterizar si lo que queremos es actualizar el dato.
+        ```
+        INSERT INTO public.station(
+        id, name, address)
+        VALUES (1, 'Center Station', '1234 Evergreen Av.')
+        ON CONFLICT (id) DO UPDATE SET name = 'Center Station', address = '1234 Evergreen Av.';
+        ```
+    RETURNING: Permite devolver todos los cambios hechos sobre la base de datos. Devolver no significa que regrese a un estado anterior, sino que muestra de nuevo todos los datos para confirmar que todo haya quedado bien insertado y si hay un campo tipo serial, nos devuelve el valor asignado.
+        ```
+        INSERT INTO public.station(
+        name, address)
+        VALUES ('Tamal Station', 'Food Av.')
+        RETURNING id;
+        ```
+        Regresa en pantalla el id creado para Tamal Station.
+    LIKE / ILIKE: Permite hacer búsquedas, al estilo de REGEX donde por ejemplo, podemos probar buscar nombres que empiecen por la letra O, o que terminen con la letra Z.
+    ```
+    Postgres recibe 2 parámetros, % y underscore (_), % devuelve todos los caracteres que estén por delante o detrás de la letra a buscar, underscore muestra en pantalla el resultado siempre y cuando, la cantidad de underscore sea la misma del caracter buscado, ej:    
+        SELECT name
+        FROM public.station
+        WHERE name ILIKE 'c_____________'; -> Retornó Center Station.
+        SELECT name
+        FROM public.passenger
+        WHERE name ILIKE 'j%';
+        ```
+        Retorna todos los pasajeros cuyo nombre empieza por la letra j, sin importar si empieza en mayúsculas o minúsculas. ILIKE no tiene en cuenta minúsculas o mayúsculas, a diferencia de LIKE.
+    IS / IS NOT: Permite comparar 2 tipos de dato que no sean estándar, como numérico o alfanumérico, sino que sean de tipo objeto o especiales como null, con este podemos saber si un campo es nulo o no lo es.
+        ```
+        SELECT *
+        FROM public.train
+        WHERE model IS NOT NULL;
+        ```
+        Con esto devuelve todos los datos de la tabla tren, puesto que ninguno de los datos ingresados contiene un modelo null.
+        ```
+        SELECT *
+        FROM public.train
+        WHERE model IS NULL;
+        ```
+        No devuelve nada, ya que todos los datos en el modelo no es nulo.
+
+
+FUNCIONES AVANZADAS EN POSTGRESQL.
+    COALESCE: Permite comparar 2 valores y retornar cuál de los 2 NO es nulo.
+        SELECT id, COALESCE(name, 'No aplica'), address, birthday
+        FROM public.passenger WHERE id = 1002;
+        Muestra la información del registro con id = 1002, que se le borró el nombre y se guardó vacío (null por defecto), al aplicar COALESCE, retorna la búsqueda, y en lugar de mostrar null, mostró la frase 'No aplica', y el nombre de la columna pasó de ser name a COALESCE.
+        SELECT id, COALESCE(name, 'No aplica') AS nombre, address, birthday
+        FROM public.passenger WHERE id = 1002;
+        Retorna lo mismo que la búsqueda anterior, pero con la diferencia que el AS nombre le añade un alias a la columna, es decir, en lugar de darle como nombre a la columna COALESCE, le pone "nombre".
+    NULLIF: Compara 2 valores y regresa NULL si son iguales.
+        SELECT NULLIF (0,0) // Retorna null, debido a que son valores iguales.
+    GREATEST y LEAST: Compara un arreglo de valores y retorna el mayor y el menor respectivamente.
+        SELECT GREATEST (0,5,4,,1,5,7,5,2,6) // Retorna 7, porque es el número mayor de la lista.
+        SELECT LEAST (0,5,4,,1,5,7,5,2,6) // Retorna 0, porque es el número menor de la lista.
+    BLOQUES ANÓNIMOS: Al igual que los lenguajes de programación, permite realizar condicionales dentro de una consulta de bases de datos.
+        SELECT id, name, address, birthday,
+        CASE
+        WHEN birthday > '2002-06-13' 
+        THEN 'Menor de edad.'
+        ELSE 'Mayor de edad.'
+        END
+        FROM public.passenger;
+        Selecciona toda la información de los pasajeros e identifica mediante una nueva columna si son mayores o menores de edad, con el uso del WHEN.
+
+        SELECT id, name, address, birthday,
+        CASE
+        WHEN EXTRACT(YEAR FROM current_date) - EXTRACT(YEAR FROM birthday) < 18
+        THEN 'Menor de edad.'
+        ELSE 'Mayor de edad.'
+        END
+        FROM public.passenger;
+        Hace exactamente lo mismo, pero con la diferencia que es más dinámico
+
+    RETO.
+    GENERAR 2 COLUMNAS CON LA LISTA DE PASAJEROS, UNA QUE INDIQUE QUÉ NOMBRES COMIENZAN CON O Y OTRA QUE INDIQUE QUÉ PERSONAS SON MAYORES Y/O MENORES DE EDAD.
+
+    SELECT id, name,
+    CASE
+    WHEN name ILIKE 'o%' 
+        THEN 'True'
+        ELSE 'False'
+    END AS start_with_an_O,
+    CASE
+        WHEN EXTRACT(YEAR FROM current_date) - EXTRACT(YEAR FROM birthday) < 30
+            THEN 'Menor de edad.'
+            ELSE 'Mayor de edad.'
+    END AS older_age
+    FROM public.passenger
+    ORDER BY start_with_an_o DESC;
+
+
+VISTAS
+Agarra una consulta que se realice muchas veces y colocarla bajo un solo nombre.
+Centraliza muchos esfuerzos en una sola función.
+    Vista volátil: Siempre que se haga la consulta en la vista, la BD hace la ejecución de la consulta en la BD, por lo que siempre se va a tener información reciente.
+    Vista materializada: Hace la consulta una sola vez, y la información queda almacenada en memoria, la siguiente vez que se consulte, trae el dato almacenado, eso es bueno y malo a la vez, bueno porque la velocidad con la que se entrega la información es rápida, malo porque la información no es actualizada. Es ideal utilizar este tipo de vista en procesos que utilice días anteriores, porque el día de ayer, ya pasó y no hay razón para actualizarlo.
+Para crear una vista volátil en postgres, damos click derecho a views, create, view, le damos un nombre, y en la pestaña code escribimos o pegamos el código de la consulta que queremos guardar, la guardamos y para usar la vista usamos:
+```
+    SELECT * FROM <nombre_vista>; y listo.
+```
+Para crear una vista materializada, primero creamos la consulta, y definimos si los datos nos interesan o no, luego, vamos a la opción materialized views, click derecho, create, materialized view. Se abre la ventana, le damos un nombre, termina con _mview, y en la pestaña Definition escribimos la consulta que necesitamos guardar. Guardamos.
+Al probarla en este momento nos lanza un error, ¿por qué? porque no tiene datos almacenados. Para almacenar datos usamos:
+```
+    REFRESH MATERIALIZED VIEW <nombre vista>;
+```
+Y ahora si podemos consultarla:
+```
+    SELECT * FROM <nombre_vista_mview>;
+```
+
+
+PL/PgSQL (Procedural Language / PostgreSQL Structured Query Language)
+Ayuda a desarrollar código directamente sobre la base de datos.
+Se componen de nombres de funciones, declaraciones y bloques de código.
+Estructura Básica.
+[ <label> ]
+[ DECLARE
+    declarations]
+BEGIN
+    Statements
+END [label];
+
+DO $$
+BEGIN
+    RAISE NOTICE 'Algo está pasando';
+END
+$$
+
+DECLARE
+rec record := ; // Se escribe el nombre de la variable y luego el tipo de dato que retorna, para darle un valor inicial utilizamos := ¿por qué? porque el igual solo está reservado para las consultas.
+```
+DO $$
+DECLARE
+rec record; // Record almacena datos.
+counter integer := 0; // Entero
+BEGIN
+	FOR rec IN SELECT * FROM passenger LOOP // rec almacenará todos los datos de la tabla passenger
+		RAISE NOTICE 'Un pasajero se llama %', rec.name; // El % será reemplazado por la variable que vamos a mostrar. Para acceder al nombre usamos rec.name
+		counter := counter + 1;
+	END LOOP;
+	RAISE NOTICE 'La cantidad de pasajeros es: %', counter;
+END
+$$
+```
+Postgres usando algunas librerías puede soportar otros lenguajes de programación, como python, c++, sql básico entre otros. Por ello, cuando hagamos una función debemos indicar qué lenguaje de programación estamos utilizando.
+```
+CREATE FUNCTION testPL() 
+  RETURNS void // No regresa nada.
+AS $$
+DECLARE
+rec record;
+counter integer := 0;
+BEGIN
+	FOR rec IN SELECT * FROM passenger LOOP
+		RAISE NOTICE 'Un pasajero se llama %', rec.name;
+		counter := counter + 1;
+	END LOOP;
+	RAISE NOTICE 'La cantidad de pasajeros es: %', counter;
+END
+$$
+LANGUAGE PLPGSQL;
+
+SELECT testPL();
+```
+En las tablas no mostrará ningún valor, pero si se mira desde la pestaña de mensajes, se podrán ver el mensaje de los pasajeros y cuántos hay.
+Para actualizar una función se utiliza CREATE OR REPLACE FUNCTION <nombreFunción>(). Sin embargo, si queremos actualizar el tipo de dato que retorna será imposible hacer dicha actualización, porque el tipo de dato no es actualizable, para ello, debemos borrar la función con DROP FUNCTION <nombreFunción>(); y luego volver a crear la función.
+```
+DROP FUNCTION testPL(); // Borramos la función anterior, para poder actualizar el tipo de dato que retorna
+CREATE OR REPLACE FUNCTION testPL() 
+  RETURNS integer 
+AS $$
+DECLARE
+rec record;
+counter integer := 0;
+BEGIN
+	FOR rec IN SELECT * FROM passenger LOOP
+		RAISE NOTICE 'Un pasajero se llama %', rec.name;
+		counter := counter + 1;
+	END LOOP;
+	RAISE NOTICE 'La cantidad de pasajeros es: %', counter;
+	RETURN counter;
+END
+$$
+LANGUAGE PLPGSQL;
+
+SELECT testPL(); // Nos muestra en una celda la cantidad de pasajeros que hay en nuestra tabla, adicionalmente, en la pestaña mensajes muestra las consultas al nombre de estos pasajeros y al final cuántos hay.
+```
+
+CREANDO PL USANDO FUNCIONES DE PGADMIN.
+En el menú desplegable de la izquierda vamos a functions, click derecho, CREATE, le damos el nombre, en Definition se le tiene que asignar un tipo de retorno, en Code pegamos el bloque de código que queremos insertar, en este caso es:
+```
+DECLARE
+rec record;
+counter integer := 0;
+BEGIN
+	FOR rec IN SELECT * FROM passenger LOOP
+		RAISE NOTICE 'Un pasajero se llama %', rec.name;
+		counter := counter + 1;
+	END LOOP;
+	RAISE NOTICE 'La cantidad de pasajeros es: %', counter;
+	RETURN counter;
+END
+```
+Las configuraciones por defecto nos funcionan bien cómo están, así que no moveremos nada por ahora, depende de los requerimientos de la base de datos y de los proyectos en los que trabajemos requeriremos estas funciones, pero por ahora, la configuración por defecto es óptima.
+En la pestaña SQL nos muestra el código que se va a ejecutar, podemos ver que postgres coloca sus propios signos pesos, razón por la cual no es necesario que peguemos en la pestaña código dichos signos.
+Guardamos y vemos que la función ha sido creada.
+
+
+TRIGGERS
+También conocidos como disparadores. Permiten ejecutar funciones dependiendo de acciones que se ejecuten dentro de una DB.
+    Insert.
+    Update.
+    Delete.
+Primero validamos la función, y que podamos guardar datos en una nueva tabla que hemos creado, para este caso se llamará 'passenger_counter'. Seleccionamos en el menú desplegable las funciones, la función que vamos a editar, en este caso es testPL, y añadimos la función para añadir la cantidad de pasajeros.
+```
+CREATE OR REPLACE FUNCTION public."testPL"(
+	)
+    RETURNS integer
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE 
+    
+AS $BODY$DECLARE
+rec record;
+counter integer := 0;
+BEGIN
+	FOR rec IN SELECT * FROM passenger LOOP
+		RAISE NOTICE 'Un pasajero se llama %', rec.name;
+		counter := counter + 1;
+	END LOOP;
+	INSERT INTO passenger_counter (total, time)
+	VALUES (counter, now());
+	RETURN counter;
+END$BODY$;
+
+ALTER FUNCTION public."testPL"()
+    OWNER TO postgres;
+```
+Ya que funciona, ahora la función no puede devolver un tipo de dato integer, sino un tipo de dato trigger. Elíminamos el RETURN porque al ser un trigger no returna ningún tipo de dato.
+```
+CREATE OR REPLACE FUNCTION public."testPL"(
+	)
+    RETURNS TRIGGER
+    LANGUAGE 'plpgsql'
+AS $BODY$DECLARE
+rec record;
+counter integer := 0;
+BEGIN
+	FOR rec IN SELECT * FROM passenger LOOP
+		counter := counter + 1;
+	END LOOP;
+	INSERT INTO passenger_counter (total, time)
+	VALUES (counter, now());
+END$BODY$;
+```
+Borramos la función anterior con DROP FUNCTION y volvemos a crear la nueva función con el retorno de dato de tipo trigger.
+Para crear un trigger tenemos 3 tipos de disparadores
+    BEFORE: Antes de que se hagan los cambios.
+    AFTER: Después que se hagan los cambios.
+    INSTEAD OF: En vez de hacer los cambios.
+Y ahora creamos el trigger de la siguiente manera:
+```
+CREATE TRIGGER my_trigger // Creamos el trigger y le ponemos el nombre my_trigger
+AFTER INSERT // Después de insertar
+ON passenger // En la tabla pasajero
+FOR EACH ROW // Para cada fila
+EXECUTE PROCEDURE "testPL"(); // Ejecutar el procedimiento/función "testPL"()
+```
+Ahora, al momento de crear una fila nos arrojará un error, ¿por qué? porque el trigger tiene que retornarnos que se ha creado un dato.
+Primero hay que eliminar los triggers y las funciones, como la función es un trigger, se encuentra en el menú desplegable "trigger functions".
+Vuelve y se crea la función, y el trigger con el siguiente código.
+```
+DROP FUNCTION public."testPL"();
+
+CREATE FUNCTION public."testPL"()
+    RETURNS trigger
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE NOT LEAKPROOF
+AS $BODY$DECLARE
+rec record;
+counter integer := 0;
+BEGIN
+	FOR rec IN SELECT * FROM passenger LOOP
+		counter := counter + 1;
+	END LOOP;
+	INSERT INTO passenger_counter (total, time)
+	VALUES (counter, now());
+	RETURN NEW; // NEW es para retornar los datos nuevos que se están ingresando, OLD retorna los valores antiguos. Como estamos insertando valores, se necesita retornar los datos que estamos ingresando
+END$BODY$;
+
+ALTER FUNCTION public."testPL"()
+    OWNER TO postgres;
+
+CREATE TRIGGER my_trigger
+    AFTER INSERT
+    ON public.passenger
+    FOR EACH ROW
+    EXECUTE PROCEDURE public."testPL"();
+```
+
+RETO CREAR UN TRIGGER PARA CUANDO SE BORRE UN DATO DE LA TABLA.
+```
+CREATE TRIGGER delete_trigger
+    AFTER DELETE
+    ON public.passenger
+    FOR EACH ROW
+    EXECUTE PROCEDURE public."testPL"();
+```
+No necesitamos crear una función de más, simplemente usamos la función anterior para que cuente los registros, y que se ejecute después que se borre un registro. 
+
+
+SIMULANDO UNA CONEXIÓN A DB REMOTAS.
+Primero creamos la extensión dblink del gestor de extensiones de postgres.
+CREATE EXTENSION dblink;
+Luego generamos la consulta desde nuestra base de datos local de transporte:
+```
+SELECT * FROM passenger
+JOIN 
+dblink ('dbname=remote 
+	   port=5432 
+	   host=127.0.0.1 
+	   user=usuario_consulta 
+	   password=123', 
+	  'SELECT id, "date" FROM vip')
+	  AS remote_data (id integer, "date" date)
+USING (id)
+```
+
+RETO CONSULTANDO DESDE LA BASE DE DATOS REMOTA A LA BASE DE DATOS LOCAL
+```
+SELECT * FROM vip
+JOIN 
+dblink ('dbname=transporte 
+	   port=5432 
+	   host=127.0.0.1 
+	   user=usuario_consulta 
+	   password=123', 
+	  'SELECT * FROM public.passenger')
+	  AS remote_data (id integer, name character varying, address character varying, birthday date)
+USING (id)
+```
+
+
+TRANSACCIONES
+Estructura básica.
+```
+BEGIN
+<consultas>
+COMMIT | ROLLBACK
+```
+BEGIN: Inicia el motor de DB diciéndole que ejecute la consulta en una sola transacción.
+COMMIT: Le dice a la DB que si todo fue exitoso, guarde los cambios.
+ROLLBACK: Le dice a la DB que si hubo un error, deshaga todos los cambios.
+
+Si hay varias consultas en una declaración, una de ellas falla y después de ellas hay un commit, nada se guardará, puesto que al estar en una sola transacción, postgres lo tomará como una falla total y no guardará ningún cambio.
+
+
+OTRAS EXTENSIONES REMOTAS.
+https://www.postgresql.org/docs/12/contrib.html
+
+CREATE EXTENSION fuzzystrmatch;
+
+SELECT levenshtein('Oscar', 'Omar'); // 2
+
+SELECT difference('Beard', 'Bird'); // 4
+
+
+BACKUPS Y RESTAURACIÓN
+    pg_dumps: Realiza backup a la base de datos.
+    pg_restore: Restaura la DB.
+Clic derecho a la base de datos y le damos click a la opción "Backup".
+http://127.0.0.1:56898/help/help/backup_dialog.html -> Para más información de las funcionalidades del backup.
+
+
+MANTENIMIENTO
+Postgres maneja una serie de funciones que trabajan en segundo plano mientras que trabajamos directamente en la base de datos, y esto es a lo que le llamamos mantenimiento.
+El nombre más común de esto es Vaccum, ya que esto quita todas las filas y columnas e items del disco duro que no están funcionando, ya que postgres al percatarse de esto, las marca como "para borrar después".
+Tiene 2 niveles de limpieza.
+    Liviano, se ejecuta todo el tiempo en la DB en segundo plano.
+    Full o completo, que es capaz de bloquear las tablas para hacer la limpieza y luego la desbloquea.
+Full es importante porque puede que una tabla tenga problemas de indexación y se demore mucho en hacer las consultas.
+Hacer mantenimiento en DB no es lo mismo que hacerlo directamente en las tablas.
+Para ejecutar el mantenimiento se da clic derecho sobre la DB o la tabla, y luego a la opción "Maintenance".
+En tablas, aparecen 3 opciones 
+    full: Revisa toda la información de la tabla, si hay información que no es aplicable limpiará/eliminará la fila con la información del índice y demás. Activar o desactivar full puede tumbar totalmente la DB.
+    freeze: durante el proceso se va a congelar. Ningún usuario va a tener acceso a esta tabla hasta que no termine el proceso de limpieza.
+    analyze: El más suave, el programa ejecutará una revisión y mostrará qué tan bien o mal está la tabla.
+Es importante siempre hacer el mantenimiento en el horario en donde menos es utilizada la DB, ¿por qué? porque si hay menos tráfico los usuarios no van a sentir tanto la ausencia del servicio. Igualmente, en la medida de las posibilidades se puede usar una DB de respaldo para que el servicio no se vea ofuscado durante el mantenimiento, luego, una vez hecho el mantenimiento se puede actualizar la DB con los datos generados en la DB de respaldo.
+
+
+REPLICAS.
+Son mecánismos que permiten evitar problemas de entrada y salida en los SO.
+"Existen 2 tipos de personas, los que ya usan réplicas y los que las van a usar..." - Piensa siempre en modo réplica.
+A medida que la DB crece encontraremos limitaciones físicas y de electrónica, si la DB aumenta tanto su tamaño, las limitaciones serán de procesamiento, RAM, almacenamiento.
+Hemos visto que las consultas en local son muy rápidas, sin embargo, cuando la aplicación ha sido desplegada pueden ocurrir multiples peticiones de lectura y escritura. Todos los motores de DB pueden hacer una ejecución a la vez, por lo que recibir tantas peticiones de consulta al mismo tiempo puede hacer que regresar una consulta se demore demasiado y eso puede ser catastrófico, pero las réplicas son la solución a este tipo de problemas.
+¿Cuál es la estrategia? Tener una base de datos principal donde se realizan todas las modificaciones, y una base de datos secundaria dónde se realiza las lecturas. Separar las tareas es altamente beneficioso en cuanto al rendimiento de la aplicación, así, cuando se modifica una DB automáticamente se lleva el cambio a la DB de lectura. Todo lo que hay que hacer es configurar 2 servidores de postgres, uno como maestro y otro como esclavo. Se debe modificar la aplicación para que todas las modificaciones se hagan sobre el maestro y la lectura sobre la replica, o la DB en caliente. Es imposible realizar cambios en la DB de réplica.
+IOPS = In Operation Per Second.
+
+
+IMPLEMENTACIÓN DE RÉPLICAS EN POSTGRES.
+https://app.cloudjiffy.co/ -> Para crear servidores de DB en postgres.
+
+CONFIGURADOS Y CONECTADOS LAS DB.
+Vamos a Master y editamos postgresql.conf, 
+    buscamos wal_level = hot_standby
+    max_wal_senders = 2 // o 3 depende de cómo vamos a crecer.
+    archive_mode = on
+    archive_command = 'cp %p /tmp/%f'
+Luego en el archivo pg_hba.conf agregamos lo siguiente:
+    host    replication     all     <dir ip>/32    trust =>32 para que identifique que no es un rango de ip sino una ip común.
+
+Abrimos la Replica y abrimos postgresql.conf, primero abrimos la consola y ejecutamos sudo service postgresql stop. No podemos copiar los archivos si la DB está en ejecución.
+Borramos los datos guardados en la réplica con rm -rf /var/lib/pgsql/data/* -> Es una ruta estandar en linux.
+Consola: pg_basebackup -U webadmin -R -D /var/lib/pgsql/data/ --host=<ip servidor master> port=5432
+postgresql.conf:
+    hot_standby = on
+En la terminal: sudo postgresql start
+
